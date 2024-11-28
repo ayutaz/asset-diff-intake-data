@@ -1,4 +1,4 @@
-name: Unity Assets Update
+name: Assets Update
 
 on:
   schedule:
