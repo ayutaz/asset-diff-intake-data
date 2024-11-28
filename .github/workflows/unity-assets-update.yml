@@ -1,0 +1,51 @@
+name: Unity Assets Update
+
+on:
+  schedule:
+    - cron: '0 17 */100 * *'  # 2日に一度、日本時間午前2時に実行（UTC 17:00）
+  workflow_dispatch:         # 手動実行を可能にする
+
+jobs:
+  update-assets:
+    runs-on: ubuntu-latest
+
+    env:
+      TARGET_BRANCH: test  # 変更先のブランチ名
+
+    steps:
+      - name: Set variables
+        run: |
+          echo "SOURCE_BRANCH=${{ github.ref_name || 'main' }}" >> $GITHUB_ENV
+
+      - name: Checkout ${{ env.TARGET_BRANCH }} branch
+        uses: actions/checkout@v4.2.2
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 1  # 最新のコミットのみを取得
+
+      - name: Fetch ${{ env.SOURCE_BRANCH }} branch
+        run: |
+          git fetch origin ${{ env.SOURCE_BRANCH }} --depth=1
+
+      - name: Copy asset data from ${{ env.SOURCE_BRANCH }} without deleting files in ${{ env.TARGET_BRANCH }}
+        run: |
+          set -x
+          # アセットデータのディレクトリを指定
+          ASSET_DIR="."  # 必要に応じて変更してください
+
+          # ${{ env.SOURCE_BRANCH }} ブランチからアセットデータを取得
+          git archive --format=tar origin/${{ env.SOURCE_BRANCH }} $ASSET_DIR | tar -x --overwrite
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7.0.5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Update assets from ${{ env.SOURCE_BRANCH }} to ${{ env.TARGET_BRANCH }}"
+          branch: update-assets-run-${{ github.run_id }}
+          base: ${{ env.TARGET_BRANCH }}
+          title: "Update assets from ${{ env.SOURCE_BRANCH }} to ${{ env.TARGET_BRANCH }}"
+          body: |
+            この自動生成されたプルリクエストは、`${{ env.SOURCE_BRANCH }}` ブランチから `${{ env.TARGET_BRANCH }}` ブランチにアセットデータを取り込みます。
+            - `${{ env.TARGET_BRANCH }}` にのみ存在するファイルは削除されていません。
+            - 競合が発生した場合、`${{ env.SOURCE_BRANCH }}` の内容が優先されています。
+          labels: automated-update
