@@ -1,9 +1,13 @@
-name: Unity Assets Update
+name: Assets Update
 
 on:
   schedule:
     - cron: '0 17 */100 * *'  # 2日に一度、日本時間午前2時に実行（UTC 17:00）
   workflow_dispatch:         # 手動実行を可能にする
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
   update-assets:
@@ -15,7 +19,7 @@ jobs:
     steps:
       - name: Set variables
         run: |
-          echo "SOURCE_BRANCH=${{ github.ref_name || 'main' }}" >> $GITHUB_ENV
+          echo "SOURCE_BRANCH=main" >> $GITHUB_ENV
 
       - name: Checkout ${{ env.TARGET_BRANCH }} branch
         uses: actions/checkout@v4.2.2
